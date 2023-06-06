@@ -121,8 +121,7 @@ for video_index, video_src in enumerate(video_srcs):
         input_img = cv2.resize(frame, (int(w0 * r), int(h0 * r)), interpolation=cv2.INTER_AREA)
         h, w = input_img.shape[:2]
 
-        (input_img, _), ratio, pad = letterbox((input_img, None), auto=False,
-                                                  scaleup=True)
+        (input_img, _), ratio, pad = letterbox((input_img, None), auto=False, scaleup=True)
 
         shapes = ((h0, w0), ((h / h0, w / w0), pad))
 
@@ -170,6 +169,8 @@ for video_index, video_src in enumerate(video_srcs):
                 plot_one_box(frame, [x1, y1, x2, y2], label=obj, score=score,
                              color=color_list[get_index_label(obj, obj_list)])
             out_stream.write(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            cv2.imshow('panoptic',frame)
+            cv2.waitKey(1)
             frame_count += 1
 
     t2 = time.time()

@@ -107,7 +107,7 @@ The project was developed with [**Python>=3.7**](https://www.python.org/download
 ```bash
 git clone https://github.com/datvuthanh/HybridNets
 cd HybridNets
-pip install -r requirements.txt
+pip install -r requirements
 ```
  
 ### Demo
