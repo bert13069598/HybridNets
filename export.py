@@ -1,15 +1,16 @@
-import os
-import cv2
 import torch
 from backbone import HybridNetsBackbone
 import argparse
+from collections import OrderedDict
 
-from utils.utils import Params
+from utils.utils import Params, boolean_string
 from pathlib import Path
 import onnxruntime
 import numpy as np
 import warnings
 from utils.constants import *
+
+warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser('HybridNets: End-to-End Perception Network - DatVu')
 parser.add_argument('-p', '--project', type=str, default='bdd100k', help='Project file that contains parameters')
@@ -24,12 +25,16 @@ args = parser.parse_args()
 
 device = 'cuda' if args.cuda else 'cpu'
 print('device', device)
+
 params = Params(f'projects/{args.project}.yml')
 weight = args.load_weights
 weight = torch.load(weight, map_location=device)
+
 if weight.get("optimizer"):  # strip optimizer
     weight = OrderedDict((k[6:], v) for k, v in weight['model'].items())
+
 weight_last_layer_seg = weight['segmentation_head.0.weight']
+
 if weight_last_layer_seg.size(0) == 1:
     seg_mode = BINARY_MODE
 else:
@@ -37,7 +42,9 @@ else:
         seg_mode = MULTILABEL_MODE
     else:
         seg_mode = MULTICLASS_MODE
+
 print("DETECTED SEGMENTATION MODE FROM WEIGHT AND PROJECT FILE:", seg_mode)
+
 model = HybridNetsBackbone(num_classes=len(params.obj_list),
                            compound_coef=args.compound_coef,
                            ratios=eval(params.anchors_ratios),
@@ -47,10 +54,12 @@ model = HybridNetsBackbone(num_classes=len(params.obj_list),
                            seg_mode=seg_mode,
                            onnx_export=True)
 
-model.load_state_dict(torch.load(weight, map_location=device))
+model.load_state_dict(weight)
+model = model.to(device)
 model.eval()
 
 inputs = torch.randn(1, 3, args.height, args.width)
+inputs = inputs.to(device)
 print("begin to convert onnx")
 
 torch.onnx.export(model,
@@ -58,5 +67,5 @@ torch.onnx.export(model,
                   'weights/hybridnets_{}x{}.onnx'.format(args.height, args.width),
                   opset_version=11,
                   input_names=['input'],
-		  output_names=['regression', 'classification', 'segmentation'])
+                  output_names=['regression', 'classification', 'segmentation'])
 print("ONXX done")
